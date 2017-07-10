@@ -59,4 +59,68 @@ data_df['aapl_resid'].plot()
 # Check cointegration assuming cointegrating vector is know.
 # Method from Hamilton p.582.
 #1. check aapl and goog are both I(1) with drift. Expect to pass the check.
+### a. use PhillipsPerron test
+### b. use ADF test
 #2. check that a'y is stationary. i.e. aapl - 0.0727 * goog is stationary with mean 61.4154.
+
+
+# PhillipsPerron test on goog.
+# for GOOG:
+# MA(10) is used to fit the data
+# stats: -0.287115074837, pvalue: 0.927309502487
+# stats: -0.582869706432, pvalue: 0.920441499758
+# h0: rho == 1 is rejected. There is no unit root.
+
+# for AAPL
+# MA(15) fits model the best.
+# stats: 3.04749309416, pvalue: 1.0
+# stats: 5.14080783224, pvalue: 0.999999999468
+# h0: rho == 1 is not rejected. There is unit root.
+
+test_series = goog_df
+from arch.unitroot import PhillipsPerron
+
+# fit MA on resid.
+import statsmodels.tsa.arima_model as arma
+for ma_lag in [7,8,9,10,11,12,13,15,20]:
+    model = arma.ARMA(test_series, (0, ma_lag)).fit()
+    print 'lag: {}, aic: {}'.format(ma_lag, model.aic)
+pp = PhillipsPerron(test_series, trend='c', lags=10, test_type='tau')
+print 'stats: {}, pvalue: {}'.format(pp.stat, pp.pvalue)
+pp = PhillipsPerron(test_series, trend='c', lags=10, test_type='rho')
+print 'stats: {}, pvalue: {}'.format(pp.stat, pp.pvalue)
+
+
+### using adf test
+### goog and aapl t-value
+# 0.876758903592
+# 0.999070159449
+
+test_series = goog_df
+from arch.unitroot import ADF
+adf = ADF(goog_df, lags=24)
+print adf.pvalue
+adf = ADF(aapl_df, lags=24)
+print adf.pvalue
+
+
+
+### checking if residual is stationary
+resid_series = data_df['aapl_resid'].dropna()
+adf = ADF(resid_series, trend='nc', method='AIC', max_lags=20)
+print adf.pvalue
+
+pp = PhillipsPerron(resid_series, trend='nc', lags=10, test_type='tau')
+print 'stats: {}, pvalue: {}'.format(pp.stat, pp.pvalue)
+pp = PhillipsPerron(test_series, trend='c', lags=10, test_type='rho')
+print 'stats: {}, pvalue: {}'.format(pp.stat, pp.pvalue)
+
+
+# adf p-value: 0.103331915666
+# thus, no cointegration is found.
+
+
+# ==============================================================================
+# ==============================================================================
+# Check cointegration assuming cointegrating vector is unknown.
+# Method from Hamilton p.582.
